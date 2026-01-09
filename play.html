@@ -22,7 +22,6 @@
       <div class="wallet">
         <div class="wallet__k">내 UT</div>
         <div class="wallet__v"><span id="utBalance">0</span> UT</div>
-        <!-- 지금 단계에서는 연동/정산 안 하므로 충전 버튼 제거 -->
       </div>
     </div>
   </header>
@@ -56,7 +55,7 @@
       </div>
     </section>
 
-    <!-- 구매 -->
+    <!-- 구매 / 내 티켓 -->
     <section class="grid2">
       <div class="card">
         <h3 class="h3">티켓 구매</h3>
@@ -66,9 +65,9 @@
           <label class="field">
             <div class="field__k">구매 수량</div>
             <div class="qty">
-              <button class="qty__btn" id="qtyMinus">-</button>
+              <button class="qty__btn" id="qtyMinus" type="button">-</button>
               <input class="qty__input" id="qtyInput" type="number" min="1" max="100" value="1" />
-              <button class="qty__btn" id="qtyPlus">+</button>
+              <button class="qty__btn" id="qtyPlus" type="button">+</button>
             </div>
           </label>
 
@@ -83,26 +82,27 @@
             </div>
           </div>
 
-          <button class="btn btn--primary btn--lg" id="buyBtn">구매하기</button>
+          <button class="btn btn--primary btn--lg" id="buyBtn" type="button">구매하기</button>
           <div class="hint" id="buyHint"></div>
 
           <div class="note">
-            * 현재는 기능 테스트 단계입니다. 결제/UT 차감/정산은 연동하지 않습니다.
+            * 현재는 기능 테스트 단계입니다. 실제 UT 차감/정산은 연동하지 않습니다.
           </div>
         </div>
       </div>
 
       <div class="card">
         <h3 class="h3">내 티켓</h3>
-        <div class="muted">현재 시리즈에서 내가 보유한 티켓 번호</div>
+        <div class="muted">구매한 시리즈 번호와 티켓 번호</div>
 
+        <!-- ✅ 여기: “시리즈+티켓번호” 리스트 표시 -->
         <div class="tickets" id="myTickets"></div>
 
         <div class="divider"></div>
 
         <div class="row row--space">
-          <button class="btn btn--ghost" id="resetSeries">시리즈 리셋(테스트)</button>
-          <button class="btn btn--ghost" id="newSeries">새 시리즈 시작(테스트)</button>
+          <button class="btn btn--ghost" id="resetSeries" type="button">시리즈 리셋(테스트)</button>
+          <button class="btn btn--ghost" id="newSeries" type="button">새 시리즈 시작(테스트)</button>
         </div>
         <div class="note">* 테스트 버튼입니다. 실서비스에서는 관리자 기능으로 분리하세요.</div>
       </div>
@@ -126,7 +126,7 @@
       <div class="modal__panel card">
         <div class="row row--space">
           <h3 class="h3" style="margin:0;">시리즈 결과</h3>
-          <button class="btn btn--ghost btn--sm" id="modalCloseBtn">닫기</button>
+          <button class="btn btn--ghost btn--sm" id="modalCloseBtn" type="button">닫기</button>
         </div>
         <div class="divider"></div>
         <div id="resultBody"></div>
