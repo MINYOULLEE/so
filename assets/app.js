@@ -160,7 +160,7 @@ function renderRecentResults(state){
   // UI: 최신 5개가 위에 먼저 보이게(전체는 스크롤로 계속)
   box.innerHTML = logs.map((r, idx) => {
     const date = new Date(r.ts);
-    const timeStr = date.toLocaleString();
+    const timeStr = formatKST(r.ts);
     return `
       <div class="card" style="
         background: rgba(255,255,255,0.06);
