@@ -22,7 +22,7 @@
       <div class="wallet">
         <div class="wallet__k">내 UT</div>
         <div class="wallet__v"><span id="utBalance">0</span> UT</div>
-        <button class="btn btn--ghost btn--sm" id="addDemoUt">데모 UT 충전</button>
+        <!-- 지금 단계에서는 연동/정산 안 하므로 충전 버튼 제거 -->
       </div>
     </div>
   </header>
@@ -33,13 +33,13 @@
       <div class="row row--space">
         <div>
           <div class="pill">진행 중</div>
-          <h2 class="h2">시리즈 <span id="seriesId">S-0001</span></h2>
+          <h2 class="h2">시리즈 <span id="seriesId">01</span></h2>
           <div class="muted">티켓 100장 도달 시 자동 종료 후 유니크 위너 1명 확정</div>
         </div>
         <div class="prize">
           <div class="prize__k">총 보상</div>
-          <div class="prize__v">10,000 UT</div>
-          <div class="prize__s">티켓 가격 120 UT</div>
+          <div class="prize__v"><span id="rewardUt">0</span> UT</div>
+          <div class="prize__s">티켓 가격 <span id="ticketPriceUt">0</span> UT</div>
         </div>
       </div>
 
@@ -60,7 +60,7 @@
     <section class="grid2">
       <div class="card">
         <h3 class="h3">티켓 구매</h3>
-        <div class="muted">구매 제한 없음 · 남은 수량 내에서만 구매 가능</div>
+        <div class="muted">구매 제한 없음 · 구매 시 티켓 번호는 1~100 중 남은 번호에서 랜덤 배정</div>
 
         <div class="buy">
           <label class="field">
@@ -75,7 +75,7 @@
           <div class="calc">
             <div class="calc__row">
               <div class="muted">예상 결제</div>
-              <div class="calc__v"><span id="costUt">120</span> UT</div>
+              <div class="calc__v"><span id="costUt">0</span> UT</div>
             </div>
             <div class="calc__row">
               <div class="muted">예상 성공 확률</div>
@@ -85,6 +85,10 @@
 
           <button class="btn btn--primary btn--lg" id="buyBtn">구매하기</button>
           <div class="hint" id="buyHint"></div>
+
+          <div class="note">
+            * 현재는 기능 테스트 단계입니다. 결제/UT 차감/정산은 연동하지 않습니다.
+          </div>
         </div>
       </div>
 
@@ -97,10 +101,10 @@
         <div class="divider"></div>
 
         <div class="row row--space">
-          <button class="btn btn--ghost" id="resetSeries">시리즈 리셋(데모)</button>
-          <button class="btn btn--ghost" id="newSeries">새 시리즈 시작(데모)</button>
+          <button class="btn btn--ghost" id="resetSeries">시리즈 리셋(테스트)</button>
+          <button class="btn btn--ghost" id="newSeries">새 시리즈 시작(테스트)</button>
         </div>
-        <div class="note">* 데모 버튼입니다. 실서비스에서는 관리자 기능으로 분리하세요.</div>
+        <div class="note">* 테스트 버튼입니다. 실서비스에서는 관리자 기능으로 분리하세요.</div>
       </div>
     </section>
 
@@ -109,9 +113,9 @@
       <h3 class="h3">게임 규칙</h3>
       <ul class="rules">
         <li>시리즈당 티켓은 100장으로 고정됩니다.</li>
-        <li>티켓 가격은 120 UT이며 구매 제한은 없습니다.</li>
+        <li>구매 제한은 없습니다.</li>
+        <li>구매 시 티켓 번호는 1~100 중 남은 번호에서 랜덤으로 배정됩니다.</li>
         <li>100장 도달 시 시리즈가 자동 종료되고 유니크 위너 1명이 선정됩니다.</li>
-        <li>총 보상은 10,000 UT이며, 단 1명에게만 지급됩니다.</li>
         <li>결과는 커밋-리빌 방식으로 검증 가능하게 기록됩니다.</li>
       </ul>
     </section>
