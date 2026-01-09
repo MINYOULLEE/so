@@ -3,21 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>참여하기 · 유니크 위너</title>
+  <title>The Unique Winner</title>
   <link rel="stylesheet" href="./assets/styles.css" />
 </head>
 <body>
   <div class="bg"></div>
 
+  <!-- 상단 바 -->
   <header class="topbar">
     <div class="wrap topbar__inner">
-      <a class="brand brand--link" href="./index.html">
+      <div class="brand">
         <div class="brand__logo">UT</div>
         <div class="brand__text">
-          <div class="brand__title">유니크 위너</div>
+          <div class="brand__title">The Unique Winner</div>
           <div class="brand__sub">시리즈 진행 · 참여 · 결과</div>
         </div>
-      </a>
+      </div>
 
       <div class="wallet">
         <div class="wallet__k">내 UT</div>
@@ -27,7 +28,7 @@
   </header>
 
   <main class="wrap page">
-    <!-- 상단 상태 -->
+    <!-- 시리즈 상태 -->
     <section class="card">
       <div class="row row--space">
         <div>
@@ -37,92 +38,78 @@
         </div>
         <div class="prize">
           <div class="prize__k">총 보상</div>
-          <div class="prize__v"><span id="rewardUt">0</span> UT</div>
-          <div class="prize__s">티켓 가격 <span id="ticketPriceUt">0</span> UT</div>
+          <div class="prize__v"><span id="rewardUt">10000</span> UT</div>
+          <div class="prize__s">티켓 가격 0 UT</div>
         </div>
       </div>
 
       <div class="progress">
-        <div class="progress__bar" id="progressBar" style="width: 0%"></div>
+        <div class="progress__bar" id="progressBar" style="width:0%"></div>
       </div>
 
-      <div class="row row--space" style="margin-top:10px;">
-        <div class="muted">
-          판매: <b><span id="soldCount">0</span>/100</b> · 남은 티켓: <b><span id="leftCount">100</span></b>
-        </div>
-        <div class="muted">
-          커밋 해시: <span class="mono" id="commitHash">-</span>
-        </div>
+      <div class="muted" style="margin-top:10px;">
+        판매: <b><span id="soldCount">0</span>/100</b> ·
+        남은 티켓: <b><span id="leftCount">100</span></b>
       </div>
     </section>
 
-    <!-- ✅ 최근 결과 (빨간 네모 영역) -->
-    <section class="card" id="recentResultsCard" style="margin-top:14px;">
+    <!-- 최근 결과 -->
+    <section class="card">
       <div class="row row--space">
         <h3 class="h3" style="margin:0;">최근 결과</h3>
-        <div class="muted" style="font-size:12px;">최신 5개는 바로 표시 · 더 많은 기록은 스크롤</div>
+        <div class="muted" style="font-size:12px;">최신 5개 표시 · 더 많은 기록은 스크롤</div>
       </div>
       <div class="divider"></div>
 
       <div id="recentResults"
-           style="
-            max-height: 180px;
-            overflow-y: auto;
-            display: grid;
-            gap: 10px;
-            padding-right: 6px;
-           ">
+        style="max-height:180px; overflow-y:auto; display:grid; gap:10px;">
       </div>
     </section>
 
     <!-- 구매 / 내 티켓 -->
     <section class="grid2">
+      <!-- 구매 -->
       <div class="card">
         <h3 class="h3">티켓 구매</h3>
-        <div class="muted">구매 제한 없음 · 구매 시 티켓 번호는 1~100 중 남은 번호에서 랜덤 배정</div>
+        <div class="muted">
+          구매 제한 없음 · 티켓 번호는 1~100 중 남은 번호에서 랜덤 배정
+        </div>
 
         <div class="buy">
-          <label class="field">
+          <div class="field">
             <div class="field__k">구매 수량</div>
             <div class="qty">
-              <button class="qty__btn" id="qtyMinus" type="button">-</button>
-              <input class="qty__input" id="qtyInput" type="number" min="1" max="100" value="1" />
-              <button class="qty__btn" id="qtyPlus" type="button">+</button>
+              <button class="qty__btn" id="qtyMinus">-</button>
+              <input class="qty__input" id="qtyInput" type="number" value="1" min="1">
+              <button class="qty__btn" id="qtyPlus">+</button>
             </div>
-          </label>
+          </div>
 
           <div class="calc">
             <div class="calc__row">
               <div class="muted">예상 결제</div>
-              <div class="calc__v"><span id="costUt">0</span> UT</div>
+              <div><span id="costUt">0</span> UT</div>
             </div>
             <div class="calc__row">
               <div class="muted">예상 성공 확률</div>
-              <div class="calc__v"><span id="winChance">1.00</span>%</div>
+              <div><span id="winChance">1.00</span>%</div>
             </div>
           </div>
 
-          <button class="btn btn--primary btn--lg" id="buyBtn" type="button">구매하기</button>
+          <button class="btn btn--primary btn--lg" id="buyBtn">구매하기</button>
           <div class="hint" id="buyHint"></div>
 
           <div class="note">
-            * 현재는 기능 테스트 단계입니다. 실제 UT 차감/정산은 연동하지 않습니다.
+            * 현재는 기능 테스트 단계입니다. 실제 UT 결제는 연동되지 않습니다.
           </div>
         </div>
       </div>
 
+      <!-- 내 티켓 -->
       <div class="card">
         <h3 class="h3">내 티켓</h3>
         <div class="muted">구매한 시리즈 번호와 티켓 번호</div>
         <div class="tickets" id="myTickets"></div>
-
-        <div class="divider"></div>
-
-        <div class="row row--space">
-          <button class="btn btn--ghost" id="resetSeries" type="button">시리즈 리셋(테스트)</button>
-          <button class="btn btn--ghost" id="newSeries" type="button">새 시리즈 시작(테스트)</button>
-        </div>
-        <div class="note">* 테스트 버튼입니다. 실서비스에서는 관리자 기능으로 분리하세요.</div>
       </div>
     </section>
 
@@ -132,7 +119,7 @@
       <div class="modal__panel card" id="resultPanel">
         <div class="row row--space">
           <h3 class="h3" style="margin:0;">시리즈 결과</h3>
-          <button class="btn btn--ghost btn--sm" id="modalCloseBtn" type="button">닫기</button>
+          <button class="btn btn--ghost btn--sm" id="modalCloseBtn">닫기</button>
         </div>
         <div class="divider"></div>
         <div id="resultBody"></div>
