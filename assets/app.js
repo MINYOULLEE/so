@@ -1,21 +1,26 @@
 /* =========================================================
-   Unique Winner (Test Build)
-   요구사항:
-   - +/-로 수량 변경 (최소 1 고정, 최대 남은 티켓)
-   - 구매하기 클릭:
-     - 랜덤 티켓 번호(남은 번호에서) 부여
-     - 내 티켓에 "시리즈 01 · #003" 형태로 누적 표시
-     - 판매 카운트 증가 / 남은 티켓 감소
-     - 진행 바가 퍼센트만큼 채워짐 + 빨간색 게이지
-   - 금액/UT 연동 값은 모두 0 (테스트 단계)
-   - localStorage 저장(새로고침해도 유지)
+   Unique Winner (Test Build v4)
+   변경사항:
+   1) 팝업(모달) 투명도 제거(불투명)
+   2) 당첨자 이름 마스킹:
+      - 3글자: 이민율 -> 이X율
+      - 4글자: 이민율조 -> 이XX조
+      - 2글자: 이민 -> 이X
+      - 5글자 이상: 앞1 + X...(중간) + 마지막1
+   3) 공정성 검증 정보 제거 (모달에서 표시 안 함)
+   4) 시리즈 종료(100장) 시:
+      - 결과 저장(최근 결과 목록)
+      - 자동으로 다음 시리즈로 넘어가며 초기화
+   5) 최근 결과:
+      - 화면엔 최대 5개만 "상단 고정" 느낌으로 먼저 보여주고
+      - 전체는 스크롤 리스트로 모두 확인 가능 (UI는 max-height + overflow)
    ========================================================= */
 
 const CFG = {
   SERIES_SIZE: 100,
   TICKET_PRICE: 0,
-  REWARD: 0,
-  STORAGE_KEY: "uw_test_state_v3",
+  REWARD: 10000, // 선생님 요구대로 “10,000 UT” 표기 원하면 여기만 10000 유지
+  STORAGE_KEY: "uw_test_state_v4",
 };
 
 function seriesLabel(n) { return String(n).padStart(2, "0"); }
@@ -49,35 +54,6 @@ function shuffleInPlace(arr){
   return arr;
 }
 
-function defaultState(){
-  return {
-    seriesNo: 1,
-    seriesId: seriesLabel(1),
-    sold: 0,
-    tickets: Array(CFG.SERIES_SIZE).fill(null), // index 0..99 -> owner userId
-    userId: "USER-LOCAL",
-    utBalance: 0, // 테스트 0
-
-    // 내가 산 티켓 로그(시리즈+번호) - 화면 표시용
-    myTicketLog: [], // {seriesId:"01", ticketNo: 3}
-
-    // commit-reveal
-    serverSeed: randomHex(32),
-    commitHash: "",
-    revealed: false,
-    winnerTicket: null,
-    winnerUserId: null,
-    finishedAt: null,
-  };
-}
-
-async function ensureCommit(state){
-  if (!state.commitHash){
-    state.commitHash = await sha256Hex(state.serverSeed);
-    saveState(state);
-  }
-}
-
 function setText(id, v){
   const el = document.getElementById(id);
   if (el) el.textContent = v;
@@ -103,14 +79,56 @@ function computeChancePercent(n){
 
 function leftCount(state){ return CFG.SERIES_SIZE - state.sold; }
 
+function maskName(name){
+  const s = (name || "").trim();
+  if (!s) return "익명";
+
+  const chars = [...s]; // 유니코드 안전
+  const n = chars.length;
+
+  if (n === 1) return chars[0];
+  if (n === 2) return `${chars[0]}X`;
+  if (n === 3) return `${chars[0]}X${chars[2]}`;      // 이민율 -> 이X율
+  if (n === 4) return `${chars[0]}XX${chars[3]}`;     // 이민율조 -> 이XX조
+  // 5 이상: 앞1 + X... + 마지막1
+  return `${chars[0]}${"X".repeat(n-2)}${chars[n-1]}`;
+}
+
+function defaultState(){
+  return {
+    seriesNo: 1,
+    seriesId: seriesLabel(1),
+    sold: 0,
+    tickets: Array(CFG.SERIES_SIZE).fill(null),
+    userId: "USER-LOCAL",
+
+    // 테스트 단계: 잔액 0, 계산만
+    utBalance: 0,
+
+    // 내 티켓 표시용
+    myTicketLog: [],
+
+    // 최근 결과 기록 (최신이 앞)
+    resultsLog: [], // {seriesId, winnerNameMasked, reward, ts}
+
+    // commit-reveal 값은 유지하되 UI에서 표시만 안 함
+    serverSeed: randomHex(32),
+    commitHash: "",
+  };
+}
+
+async function ensureCommit(state){
+  if (!state.commitHash){
+    state.commitHash = await sha256Hex(state.serverSeed);
+    saveState(state);
+  }
+}
+
 function updateProgressBar(state){
   const bar = document.getElementById("progressBar");
   if (!bar) return;
-
   const percent = (state.sold / CFG.SERIES_SIZE) * 100;
   bar.style.width = `${percent}%`;
-
-  // ✅ 빨간색 게이지
   bar.style.background = "linear-gradient(90deg, rgba(255,70,70,0.95), rgba(255,130,130,0.9))";
 }
 
@@ -118,16 +136,49 @@ function renderMyTickets(state){
   const box = document.getElementById("myTickets");
   if (!box) return;
 
-  if (!state.myTicketLog || state.myTicketLog.length === 0){
+  if (!state.myTicketLog?.length){
     box.innerHTML = `<div class="muted">아직 보유한 티켓이 없습니다.</div>`;
     return;
   }
 
-  // 보기 좋게: 최신 순
   const items = [...state.myTicketLog].slice().reverse();
+  box.innerHTML = items.map(it =>
+    `<span class="ticket ticket--me">시리즈 ${it.seriesId} · #${formatTicketNo(it.ticketNo)}</span>`
+  ).join("");
+}
 
-  box.innerHTML = items.map(it => {
-    return `<span class="ticket ticket--me">시리즈 ${it.seriesId} · #${formatTicketNo(it.ticketNo)}</span>`;
+function renderRecentResults(state){
+  const box = document.getElementById("recentResults");
+  if (!box) return;
+
+  const logs = state.resultsLog || [];
+  if (logs.length === 0){
+    box.innerHTML = `<div class="muted">아직 종료된 시리즈 결과가 없습니다.</div>`;
+    return;
+  }
+
+  // UI: 최신 5개가 위에 먼저 보이게(전체는 스크롤로 계속)
+  box.innerHTML = logs.map((r, idx) => {
+    const date = new Date(r.ts);
+    const timeStr = date.toLocaleString();
+    return `
+      <div class="card" style="
+        background: rgba(255,255,255,0.06);
+        border-color: rgba(255,255,255,0.10);
+        padding: 12px 14px;
+        ${idx < 5 ? "" : "opacity: 0.92;"}
+      ">
+        <div class="row row--space" style="gap:10px;">
+          <div style="min-width:0;">
+            <div style="font-weight:900;">결과 · 시리즈 ${r.seriesId}</div>
+            <div class="muted" style="margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${r.winnerNameMasked} · ${Number(r.reward).toLocaleString()} UT 획득
+            </div>
+          </div>
+          <div class="muted" style="font-size:12px; flex:0 0 auto;">${timeStr}</div>
+        </div>
+      </div>
+    `;
   }).join("");
 }
 
@@ -144,6 +195,7 @@ function updateUI(state){
 
   updateProgressBar(state);
   renderMyTickets(state);
+  renderRecentResults(state);
 
   const buyBtn = document.getElementById("buyBtn");
   if (buyBtn) buyBtn.disabled = (state.sold >= CFG.SERIES_SIZE);
@@ -158,83 +210,43 @@ function updateCalc(state){
 
   const max = Math.max(1, leftCount(state));
   const qty = clamp(parseInt(qtyInput.value || "1", 10), 1, max);
-
   qtyInput.value = String(qty);
 
-  const cost = qty * CFG.TICKET_PRICE; // 테스트 단계 0
+  const cost = qty * CFG.TICKET_PRICE;
   const chance = computeChancePercent(qty);
 
   setText("costUt", cost);
   setText("winChance", chance.toFixed(2));
 }
 
-function pickWinnerFromSeed(state){
-  const hex = state.commitHash.slice(0, 12);
-  const num = parseInt(hex, 16);
-  const idx = (num % CFG.SERIES_SIZE);
-  return idx + 1;
-}
-
-async function finishSeriesIfNeeded(state){
-  if (state.sold < CFG.SERIES_SIZE) return;
-
-  if (!state.revealed){
-    state.revealed = true;
-    state.finishedAt = new Date().toISOString();
-
-    const winnerTicket = pickWinnerFromSeed(state);
-    state.winnerTicket = winnerTicket;
-    state.winnerUserId = state.tickets[winnerTicket - 1];
-
-    saveState(state);
-    openResultModal(state);
-  }
-}
-
-function openResultModal(state){
+function openResultModal({seriesId, winnerTicketNo, winnerNameMasked, reward}){
   const modal = document.getElementById("resultModal");
-  if (!modal) return;
+  const panel = document.getElementById("resultPanel");
+  if (!modal || !panel) return;
 
-  const isMe = (state.winnerUserId === state.userId);
+  // ✅ 모달 패널을 완전 불투명에 가깝게
+  panel.style.background = "rgba(10, 12, 18, 0.98)";
+  panel.style.borderColor = "rgba(255,255,255,0.12)";
+  panel.style.backdropFilter = "none";
 
+  // ✅ 공정성 검증 정보 제거하고 핵심만
   const body = `
-    <div class="muted">시리즈: <b>${state.seriesId}</b> · 종료 시각: <b>${new Date(state.finishedAt).toLocaleString()}</b></div>
+    <div class="muted">시리즈: <b>${seriesId}</b></div>
     <div style="height:12px"></div>
 
-    <div class="card" style="background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08);">
-      <div class="row row--space">
-        <div>
-          <div class="pill">유니크 위너</div>
-          <div style="font-size:22px; font-weight:900; margin-top:8px;">
-            당첨 티켓: #${formatTicketNo(state.winnerTicket)}
-          </div>
-          <div class="muted" style="margin-top:6px;">
-            보상: <b>${CFG.REWARD.toLocaleString()} UT</b>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div class="muted">내 결과</div>
-          <div style="font-size:18px; font-weight:900; margin-top:8px; color:${isMe ? "rgba(39,211,162,0.95)" : "rgba(255,91,122,0.95)"}">
-            ${isMe ? "당첨" : "미당첨"}
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="card" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12);">
+      <div style="font-size:18px; font-weight:900;">유니크 위너</div>
 
-    <div class="divider"></div>
+      <div style="margin-top:10px; font-size:22px; font-weight:900;">
+        당첨 티켓: #${formatTicketNo(winnerTicketNo)}
+      </div>
 
-    <div class="muted">공정성 검증 정보</div>
-    <div style="margin-top:8px; display:grid; gap:10px;">
-      <div class="card" style="background: rgba(0,0,0,0.18); border-color: rgba(255,255,255,0.08);">
-        <div class="muted">커밋 해시(사전 고정)</div>
-        <div class="mono" style="margin-top:6px; word-break:break-all;">${state.commitHash}</div>
+      <div class="muted" style="margin-top:8px;">
+        당첨자: <b>${winnerNameMasked}</b>
       </div>
-      <div class="card" style="background: rgba(0,0,0,0.18); border-color: rgba(255,255,255,0.08);">
-        <div class="muted">시드(종료 후 공개)</div>
-        <div class="mono" style="margin-top:6px; word-break:break-all;">${state.serverSeed}</div>
-      </div>
-      <div class="muted" style="font-size:12px;">
-        * 검증: SHA-256(시드)=커밋 해시 확인 → 커밋 해시 앞 12자 정수화 → (값 % 100)+1 = 당첨 티켓
+
+      <div class="muted" style="margin-top:6px;">
+        보상: <b>${Number(reward).toLocaleString()} UT</b>
       </div>
     </div>
   `;
@@ -242,49 +254,17 @@ function openResultModal(state){
   setHtml("resultBody", body);
   modal.setAttribute("aria-hidden", "false");
 }
+
 function closeModal(){
   const modal = document.getElementById("resultModal");
   if (!modal) return;
   modal.setAttribute("aria-hidden", "true");
 }
 
-function resetSeries(state){
-  state.sold = 0;
-  state.tickets = Array(CFG.SERIES_SIZE).fill(null);
-
-  // 로그는 유지/초기화 선택 가능. 테스트 편의상 유지 X -> 초기화
-  state.myTicketLog = [];
-
-  state.serverSeed = randomHex(32);
-  state.commitHash = "";
-  state.revealed = false;
-  state.winnerTicket = null;
-  state.winnerUserId = null;
-  state.finishedAt = null;
-}
-
-function nextSeries(state){
-  state.seriesNo += 1;
-  state.seriesId = seriesLabel(state.seriesNo);
-
-  state.sold = 0;
-  state.tickets = Array(CFG.SERIES_SIZE).fill(null);
-  state.myTicketLog = [];
-
-  state.serverSeed = randomHex(32);
-  state.commitHash = "";
-  state.revealed = false;
-  state.winnerTicket = null;
-  state.winnerUserId = null;
-  state.finishedAt = null;
-}
-
-/** ✅ 핵심: 랜덤 티켓 배정 + 로그 기록 + 카운트/바 갱신 */
 function buyTicketsRandom(state, qty){
   const left = leftCount(state);
   qty = clamp(qty, 1, left);
 
-  // 남은 티켓 인덱스(0..99)
   const available = [];
   for (let i=0; i<CFG.SERIES_SIZE; i++){
     if (state.tickets[i] === null) available.push(i);
@@ -298,8 +278,6 @@ function buyTicketsRandom(state, qty){
     state.tickets[idx] = state.userId;
     const ticketNo = idx + 1;
     pickedNos.push(ticketNo);
-
-    // ✅ 내 티켓 로그에 “시리즈 + 티켓번호” 기록
     state.myTicketLog.push({ seriesId: state.seriesId, ticketNo });
   }
 
@@ -310,13 +288,69 @@ function buyTicketsRandom(state, qty){
 
   return {
     ok: true,
+    pickedNos,
     msg: `구매 완료: ${pickedNos.length}장 (랜덤 배정: #${formatTicketNo(pickedNos[0])}${pickedNos.length>1 ? ` 외 ${pickedNos.length-1}장` : ""})`,
     kind: "good"
   };
 }
 
+function autoAdvanceSeries(state){
+  // 다음 시리즈로 증가 + 전체 초기화(티켓/판매/내티켓)
+  state.seriesNo += 1;
+  state.seriesId = seriesLabel(state.seriesNo);
+  state.sold = 0;
+  state.tickets = Array(CFG.SERIES_SIZE).fill(null);
+  state.myTicketLog = [];
+
+  // commit 값 갱신
+  state.serverSeed = randomHex(32);
+  state.commitHash = "";
+
+  saveState(state);
+}
+
+async function finishSeriesIfNeeded(state){
+  if (state.sold < CFG.SERIES_SIZE) return;
+
+  // 당첨 티켓(커밋해시 기반 결정)
+  const hex = state.commitHash.slice(0, 12);
+  const num = parseInt(hex, 16);
+  const winnerTicketNo = (num % CFG.SERIES_SIZE) + 1;
+
+  // ✅ “당첨자 이름”은 지금 단계에서 사용자 이름을 임시로 쓰자.
+  // 실제 서비스에서는 구매자 DB에서 winnerTicketNo의 소유자 이름을 가져오면 됨.
+  // 지금은 테스트니까: 내 이름이 있다고 가정한 예시(원하면 입력 UI도 붙여줌)
+  const rawName = "이민율"; // ← 테스트용. 나중에 로그인/닉네임 연동
+  const winnerNameMasked = maskName(rawName);
+
+  const seriesId = state.seriesId;
+  const reward = CFG.REWARD;
+
+  // ✅ 최근 결과 로그에 저장(최신이 앞)
+  state.resultsLog = state.resultsLog || [];
+  state.resultsLog.unshift({
+    seriesId,
+    winnerNameMasked,
+    reward,
+    ts: new Date().toISOString(),
+  });
+  saveState(state);
+
+  // ✅ 모달 즉시 오픈
+  openResultModal({ seriesId, winnerTicketNo, winnerNameMasked, reward });
+
+  // ✅ 다음 시리즈로 자동 전환 + 초기화
+  // 모달 띄운 상태에서 바로 넘어가도 되지만, 사용자 혼란을 줄이려고
+  // "모달을 닫으면 다음 시리즈가 이미 시작되어 있는 형태"로 유지.
+  autoAdvanceSeries(state);
+
+  // UI 갱신
+  await ensureCommit(state);
+  updateUI(state);
+  updateCalc(state);
+}
+
 async function main(){
-  // play page only
   const qtyInput = document.getElementById("qtyInput");
   if (!qtyInput) return;
 
@@ -341,22 +375,10 @@ async function main(){
     updateCalc(state);
   }
 
-  // ✅ 입력 직접 수정해도 제한 적용
-  qtyInput.addEventListener("input", () => {
-    setQty(parseInt(qtyInput.value || "1", 10));
-  });
+  qtyInput.addEventListener("input", () => setQty(parseInt(qtyInput.value || "1", 10)));
+  minus.addEventListener("click", () => setQty(parseInt(qtyInput.value || "1", 10) - 1));
+  plus.addEventListener("click", () => setQty(parseInt(qtyInput.value || "1", 10) + 1));
 
-  // ✅ - 버튼: 1 아래로 내려가지 않음
-  minus.addEventListener("click", () => {
-    setQty(parseInt(qtyInput.value || "1", 10) - 1);
-  });
-
-  // ✅ + 버튼: 남은 티켓 초과 불가
-  plus.addEventListener("click", () => {
-    setQty(parseInt(qtyInput.value || "1", 10) + 1);
-  });
-
-  // ✅ 구매하기: 랜덤 티켓 + UI 갱신
   buyBtn.addEventListener("click", async () => {
     showHint("");
 
@@ -365,6 +387,7 @@ async function main(){
       return;
     }
 
+    // commit 보장
     await ensureCommit(state);
 
     const max = Math.max(1, leftCount(state));
@@ -373,13 +396,16 @@ async function main(){
     const res = buyTicketsRandom(state, qty);
     showHint(res.msg, res.kind);
 
+    // UI 갱신
     await ensureCommit(state);
     updateUI(state);
-
-    // 남은 티켓에 맞춰 수량 자동 보정
     setQty(1);
 
+    // 시리즈 종료 체크
     await finishSeriesIfNeeded(state);
+
+    // state가 autoAdvance로 바뀌었을 수 있으니 다시 로드
+    state = loadState() || state;
   });
 
   // modal close
@@ -388,8 +414,12 @@ async function main(){
 
   // test buttons
   document.getElementById("resetSeries")?.addEventListener("click", async () => {
-    resetSeries(state);
+    const keepResults = true; // 리셋해도 결과는 남기는게 자연스러움
+    const results = keepResults ? (state.resultsLog || []) : [];
+    state = defaultState();
+    state.resultsLog = results;
     saveState(state);
+
     await ensureCommit(state);
     updateUI(state);
     setQty(1);
@@ -397,18 +427,23 @@ async function main(){
   });
 
   document.getElementById("newSeries")?.addEventListener("click", async () => {
-    nextSeries(state);
+    // 새 시리즈 시작: 결과는 유지
+    const results = state.resultsLog || [];
+    state.seriesNo += 1;
+    state.seriesId = seriesLabel(state.seriesNo);
+    state.sold = 0;
+    state.tickets = Array(CFG.SERIES_SIZE).fill(null);
+    state.myTicketLog = [];
+    state.serverSeed = randomHex(32);
+    state.commitHash = "";
+    state.resultsLog = results;
+
     saveState(state);
     await ensureCommit(state);
     updateUI(state);
     setQty(1);
     showHint("새 시리즈가 시작되었습니다(테스트).", "good");
   });
-
-  // 만약 새로고침했는데 이미 종료 상태면
-  if (state.revealed && state.finishedAt){
-    showHint("이 시리즈는 이미 종료되었습니다. 결과를 확인할 수 있습니다.", "good");
-  }
 }
 
 main();

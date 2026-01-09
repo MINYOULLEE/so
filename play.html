@@ -45,6 +45,7 @@
       <div class="progress">
         <div class="progress__bar" id="progressBar" style="width: 0%"></div>
       </div>
+
       <div class="row row--space" style="margin-top:10px;">
         <div class="muted">
           판매: <b><span id="soldCount">0</span>/100</b> · 남은 티켓: <b><span id="leftCount">100</span></b>
@@ -52,6 +53,25 @@
         <div class="muted">
           커밋 해시: <span class="mono" id="commitHash">-</span>
         </div>
+      </div>
+    </section>
+
+    <!-- ✅ 최근 결과 (빨간 네모 영역) -->
+    <section class="card" id="recentResultsCard" style="margin-top:14px;">
+      <div class="row row--space">
+        <h3 class="h3" style="margin:0;">최근 결과</h3>
+        <div class="muted" style="font-size:12px;">최신 5개는 바로 표시 · 더 많은 기록은 스크롤</div>
+      </div>
+      <div class="divider"></div>
+
+      <div id="recentResults"
+           style="
+            max-height: 180px;
+            overflow-y: auto;
+            display: grid;
+            gap: 10px;
+            padding-right: 6px;
+           ">
       </div>
     </section>
 
@@ -94,8 +114,6 @@
       <div class="card">
         <h3 class="h3">내 티켓</h3>
         <div class="muted">구매한 시리즈 번호와 티켓 번호</div>
-
-        <!-- ✅ 여기: “시리즈+티켓번호” 리스트 표시 -->
         <div class="tickets" id="myTickets"></div>
 
         <div class="divider"></div>
@@ -108,22 +126,10 @@
       </div>
     </section>
 
-    <!-- 규칙 -->
-    <section class="card" id="rules">
-      <h3 class="h3">게임 규칙</h3>
-      <ul class="rules">
-        <li>시리즈당 티켓은 100장으로 고정됩니다.</li>
-        <li>구매 제한은 없습니다.</li>
-        <li>구매 시 티켓 번호는 1~100 중 남은 번호에서 랜덤으로 배정됩니다.</li>
-        <li>100장 도달 시 시리즈가 자동 종료되고 유니크 위너 1명이 선정됩니다.</li>
-        <li>결과는 커밋-리빌 방식으로 검증 가능하게 기록됩니다.</li>
-      </ul>
-    </section>
-
     <!-- 결과 모달 -->
     <div class="modal" id="resultModal" aria-hidden="true">
       <div class="modal__backdrop" id="modalClose"></div>
-      <div class="modal__panel card">
+      <div class="modal__panel card" id="resultPanel">
         <div class="row row--space">
           <h3 class="h3" style="margin:0;">시리즈 결과</h3>
           <button class="btn btn--ghost btn--sm" id="modalCloseBtn" type="button">닫기</button>
